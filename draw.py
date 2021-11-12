@@ -1,3 +1,5 @@
+from board_constants import *
+
 '''
 All the pygame drawing wrapped up 
 
@@ -7,7 +9,6 @@ All the pygame drawing wrapped up
 import pygame as pg
 # Custom imports
 from constants import *		# Global variables
-from helper import *
 
 
 # Draws the checkerboard pattern
@@ -67,7 +68,7 @@ def sidebar(screen):
 def pieces(screen, pieces, images):
 	# For each piece, draw at piece's position
 	for piece in pieces:
-		screen.blit(images[piece.label], (piece.position.x, piece.position.y))
+		screen.blit(images[piece.label], (piece.position.pix_x, piece.position.pix_y))
 
 
 def highlight(screen, positions):
@@ -76,7 +77,7 @@ def highlight(screen, positions):
 	square.fill(HIGHLIGHT_COLOUR)
 	square.set_alpha(HIGHLIGHT_ALPHA)
 	# For each square
-	for cn, bb in SQUARE_BB.items():
+	for cn, bb in SQUARE.items():
 		# If square in positions
 		if bb & positions:
 			# Draw it
@@ -89,7 +90,7 @@ def moves(screen, positions):
 	square.fill(MOVES_COLOUR)
 	square.set_alpha(MOVES_ALPHA)
 	# For each square
-	for cn, bb in SQUARE_BB.items():
+	for cn, bb in SQUARE.items():
 		# If square in positions
 		if bb & positions:
 			# Draw it

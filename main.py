@@ -7,16 +7,49 @@ Second attempt
 #Test
 
 import pygame as pg
+from numpy import rot90
 import copy
 
 # Custom imports
-from constants import *		# Global variables
-from helper import *		# Global variables
+from constants import *			# Global variables
+from board_constants import *	# Global variables
 import draw
-import chess_pieces as cp
+from chess_pieces import *
 import engine
 
 
+
+'''
+ Import image as pygame image object
+-------------------------------------
+'''
+def import_image(name):
+	filename = 'img/{}.png'.format(name)
+	img = pg.image.load(filename).convert_alpha()
+	img = pg.transform.smoothscale(img, (SQ_SIZE, SQ_SIZE))
+	return img
+
+# Generates pieces based on INITIAL_BOARD
+def initialise_pieces():
+	bb_location = START
+	pieces = []
+
+	board = rot90(INITIAL_BOARD, k=3)
+
+	# For each square
+	for row in range(len(board)):
+		for col in range(len(board[row])):
+			# Get piece on square
+			square = board[col][row]
+			position = Position(bb=bb_location)
+			# If not empty
+			if square != '--':
+				# Add to piece list
+				pieces.append(Piece(position, square))
+			# Move to next square to test
+			bb_location = shift(bb_location, 1)
+
+	return pieces
 
 if __name__ == '__main__':
 
@@ -28,9 +61,9 @@ if __name__ == '__main__':
 	images = {label: import_image(label) for label in PIECE_LABELS}
 
 	# Initialise chess board
-	pieces = cp.initialise_pieces()		# Generate all pieces from initial board in constants
-	gs = engine.Gamestate(pieces)
-
+	pieces = initialise_pieces()		# Generate all pieces from initial board in constants
+	gs = engine.GameState(pieces)
+	gs.update()
 
 	# Initialise variables
 	score = 0
@@ -39,8 +72,8 @@ if __name__ == '__main__':
 	move_to = None
 	selected_square = None
 	selected_piece = None
-	highlight_positions = EMPTY_BB	# All positions highlighted by user
-	highlight_moves = EMPTY_BB		# Moves possible by selected piece
+	highlight_positions = EMPTY	# All positions highlighted by user
+	highlight_moves = EMPTY		# Moves possible by selected piece
 	previous_turns =[]
 
 	game_on = True		# Flag to keep game running
@@ -60,35 +93,36 @@ if __name__ == '__main__':
 				game_on = False
 			# User clicks
 			elif event.type == pg.MOUSEBUTTONDOWN:
-				highlight_moves = EMPTY_BB
+				highlight_moves = EMPTY
 				x,y = event.pos
-				selected_square = Position(xy=event.pos)
+				bb = xy2bb(x, y)
+				selected_square = Position(bb)
 				# .............................................................Left Mouse Button
 				if event.button == 1:	# LMB
 					# Retrieve ally piece at that square if it exists
-					selected_piece = gs.get_piece_at_pos(selected_square, side=ally_side)
+					selected_piece = gs.pos2piece(selected_square)
 
 					# If no previously selected piece and ally piece selected
-					if not(move_from) and selected_piece:
+					if not(move_from) and selected_piece in gs.ally_pieces:
 						# Remember for movement next click
 						move_piece = selected_piece
 						move_from = selected_square
 						# Get possible moves as bb
-						highlight_moves = selected_piece.get_moves(selected_piece, gs)
-						# highlight_moves = selected_piece.get_moves(selected_piece, gs)
+						highlight_moves = selected_piece.moves
 
 					# If previously selected piece and not clicking same square 
 					# and selected_square in selected_piece.moves
 					elif move_from and move_from != selected_square and \
 						 selected_square.bb & move_piece.moves:
 						move_to = selected_square
-						captured_piece = gs.get_piece_at_pos(selected_square, side=enemy_side)
+						captured_piece = gs.pos2piece(selected_square)
 
 					# If user didn't click on a valid square
 					else:
+						selected_piece = None
 						move_piece = None
 						move_from = False
-					highlight_positions = EMPTY_BB
+					highlight_positions = EMPTY
 				# ...........................................................Middle Mouse Button
 				# elif event.button == 2:	# MMB
 				# ............................................................Right Mouse Button
@@ -131,9 +165,11 @@ if __name__ == '__main__':
 		draw.moves(screen, highlight_moves)
 		if selected_piece:
 			draw.selection(screen, selected_piece.position.bb)
-		if gs.check:
-			draw.check(screen, gs.ally_king.position.bb)
-
+		# if gs.check:
+		# 	draw.check(screen, gs.ally_king.position.bb)
 		draw.pieces(screen, gs.active_pieces, images)
+
+
+
 		pg.display.update()
 		clock.tick(FPS)
